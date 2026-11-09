@@ -58,7 +58,7 @@ paths = s0 * np.exp(
 | **European Payoff** | $h(S_T) = \max(\phi(S_T - K), 0)$ | Terminal slice: `np.maximum(phi * (paths[-1] - K), 0)` |
 | **Asian Payoff (Arithmetic)** | $h(\bar{S}) = \max\left(\phi\left(\frac{1}{M}\sum_{i=1}^M S_{t_i} - K\right), 0\right)$ | Path mean: `np.maximum(phi * (paths[1:].mean(axis=0) - K), 0)` |
 | **Discounted Price ($\hat{V}$)** | $\hat{V} = e^{-r T} \frac{1}{N}\sum_{n=1}^N h(S^{(n)})$ | `np.exp(-r * T) * payoffs.mean()` |
-| **Confidence Interval (95%)** | $\hat{V} \pm 1.96 \cdot \frac{\hat{\sigma}_{\text{discounted}}}{\sqrt{N}}$ | Standard error using sample variance of discounted payoffs |
+| **Confidence Interval (95%)** | $\hat{V} \pm 1.96 \cdot \frac{\hat{\sigma}_{\text{discounted}}}{\sqrt{N}}$ | Standard error over antithetic pair averages (independent observations) |
 | **Delta ($\Delta$)** | $\frac{\hat{V}(S_0 + \epsilon) - \hat{V}(S_0 - \epsilon)}{2\epsilon}$ | Central difference reusing scaled paths: $S_t \cdot (1 \pm \epsilon / S_0)$ |
 | **Gamma ($\Gamma$)** | $\frac{\hat{V}(S_0 + \epsilon) - 2\hat{V}(S_0) + \hat{V}(S_0 - \epsilon)}{\epsilon^2}$ | Second-order central difference reusing scaled paths |
 | **Vega ($\nu$)** | $\frac{\hat{V}(\sigma + \Delta\sigma) - \hat{V}(\sigma - \Delta\sigma)}{2\Delta\sigma}$ | Central difference freezing Common Random Numbers (CRN) |
@@ -79,7 +79,7 @@ montecarlo_pricer/
 │   ├── __init__.py
 │   └── test_pricer.py   # Pytest: BS checks, Put-Call Parity, Variance test
 ├── main.py              # Runner script
-├── requirements.txt     # Dependencies
+├── pyproject.toml       # Package + dependencies
 └── README.md
 
 ```
@@ -89,10 +89,9 @@ montecarlo_pricer/
 **Requirements:** Python 3.10+
 
 ```bash
-pip install -r requirements.txt
+pip install -e ".[dev]"
 python main.py
-pytest tests/
-
+pytest
 ```
 
 ## Sample Output
@@ -100,13 +99,13 @@ pytest tests/
 ```text
 $ python main.py
 Pricing Parameters: S0=100.0, K=105.0, r=0.03, vol=0.2, T=1.0y
-  European Call : 7.1350  (SE: 0.0396)
-  Asian Call    : 3.1489  (SE: 0.0193)
-  Sensitivities : Delta=0.5023 | Gamma=0.01971 | Vega(1%)=0.3993
+  European Call : 7.1447  (SE: 0.0327)
+  Asian Call    : 3.1907  (SE: 0.0168)
+  Sensitivities : Delta=0.5025 | Gamma=0.02082 | Vega(1%)=0.4000
 
 ```
 
-**Interpretation:** The Asian call is around 56% cheaper than the European call ($3.1489$ vs $7.1350$). Because the Asian payoff uses an average of 252 daily prices, extreme high and low price spikes get smoothed out. Less volatility means less option value, which lowers the price and also cuts the simulation standard error ($0.0193$ vs $0.0396$). Delta is near $0.50$ because the strike ($105$) is close to the forward price ($100 \cdot e^{0.03} \approx 103.05$).
+**Interpretation:** The Asian call is around 55% cheaper than the European call ($3.1907$ vs $7.1447$). Because the Asian payoff uses an average of 252 daily prices, extreme high and low price spikes get smoothed out. Less volatility means less option value, which lowers the price and also cuts the simulation standard error ($0.0168$ vs $0.0327$). Delta is near $0.50$ because the strike ($105$) is close to the forward price ($100 \cdot e^{0.03} \approx 103.05$).
 
 ## What I Learned
 

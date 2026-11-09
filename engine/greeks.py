@@ -29,19 +29,26 @@ class GreeksEngine:
         return delta, gamma
 
     def vega(self, bump: float = 0.01, n_paths: int = 100_000, seed: int = 42) -> float:
-        sim_bumped = GBMSimulator(
+        sim_up = GBMSimulator(
             self.sim.s0,
             self.sim.r,
             self.sim.sigma + bump,
             self.sim.t,
             self.sim.n_steps,
         )
+        sim_down = GBMSimulator(
+            self.sim.s0,
+            self.sim.r,
+            self.sim.sigma - bump,
+            self.sim.t,
+            self.sim.n_steps,
+        )
 
-        p_base, _, _ = MonteCarloPricer(self.sim, self.option).price(
+        p_up, _, _ = MonteCarloPricer(sim_up, self.option).price(
             n_paths=n_paths, antithetic=True, seed=seed
         )
-        p_up, _, _ = MonteCarloPricer(sim_bumped, self.option).price(
+        p_down, _, _ = MonteCarloPricer(sim_down, self.option).price(
             n_paths=n_paths, antithetic=True, seed=seed
         )
 
-        return (p_up - p_base) / bump
+        return (p_up - p_down) / (2.0 * bump)

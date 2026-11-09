@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 from scipy.stats import norm
 
+from engine.greeks import GreeksEngine
 from engine.options import EuropeanOption
 from engine.pricer import MonteCarloPricer
 from engine.simulator import GBMSimulator
@@ -62,3 +63,23 @@ def test_antithetic_variance_reduction():
     )
 
     assert se_antithetic < se_standard
+
+
+def test_greeks_match_black_scholes():
+    s0, k, r, sigma, t = 100.0, 105.0, 0.03, 0.20, 1.0
+    d1 = (np.log(s0 / k) + (r + 0.5 * sigma**2) * t) / (sigma * np.sqrt(t))
+    bs_delta = norm.cdf(d1)
+    bs_gamma = norm.pdf(d1) / (s0 * sigma * np.sqrt(t))
+    bs_vega = s0 * norm.pdf(d1) * np.sqrt(t)
+
+    sim = GBMSimulator(s0=s0, r=r, sigma=sigma, t=t, n_steps=252)
+    option = EuropeanOption(strike=k, is_call=True)
+
+    delta, gamma = GreeksEngine(sim, option).delta_gamma(
+        bump=0.5, n_paths=200_000, seed=42
+    )
+    vega = GreeksEngine(sim, option).vega(bump=0.01, n_paths=200_000, seed=42)
+
+    assert abs(delta - bs_delta) < 0.01
+    assert abs(gamma - bs_gamma) < 0.005
+    assert abs(vega - bs_vega) < 1.0
